@@ -1,14 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Modal from './Modal';
 
 interface StationInfo {
   name: string;
-  lines: string[];
+  line: string;
   avgBoarding?: number;
   avgAlighting?: number;
 }
+
+type SortField = 'name' | 'avgBoarding' | 'avgAlighting';
+type SortDirection = 'asc' | 'desc';
 
 interface DataSummaryProps {
   summary: {
@@ -19,7 +22,7 @@ interface DataSummaryProps {
     weekdayCount: number;
     weekendHolidayCount: number;
     lineList?: string[];
-    stationList?: StationInfo[];
+    stationList?: StationInfo[];  // 노선별로 분리된 역 목록
   } | null;
   loading: boolean;
 }
@@ -52,6 +55,53 @@ function getLineColor(lineName: string): string {
 export default function DataSummary({ summary, loading }: DataSummaryProps) {
   const [showLineModal, setShowLineModal] = useState(false);
   const [showStationModal, setShowStationModal] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // 정렬된 역 목록
+  const sortedStationList = useMemo(() => {
+    if (!summary?.stationList) return [];
+    
+    return [...summary.stationList].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'ko');
+          if (comparison === 0) {
+            // 같은 역이면 노선 번호순
+            const numA = parseInt(a.line.replace(/[^0-9]/g, '')) || 999;
+            const numB = parseInt(b.line.replace(/[^0-9]/g, '')) || 999;
+            comparison = numA - numB;
+          }
+          break;
+        case 'avgBoarding':
+          comparison = (a.avgBoarding || 0) - (b.avgBoarding || 0);
+          break;
+        case 'avgAlighting':
+          comparison = (a.avgAlighting || 0) - (b.avgAlighting || 0);
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [summary?.stationList, sortField, sortDirection]);
+
+  // 정렬 핸들러
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // 정렬 인디케이터
+  const getSortIndicator = (field: SortField) => {
+    if (sortField !== field) return <span className="opacity-30 ml-1">↕</span>;
+    return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   if (loading) {
     return (
@@ -170,12 +220,12 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
       <Modal
         isOpen={showStationModal}
         onClose={() => setShowStationModal(false)}
-        title={`전체 역 목록 (${summary.uniqueStations}개)`}
+        title={`전체 역 목록 (${summary.uniqueStations}개 역, ${summary.stationList?.length || 0}개 노선별)`}
       >
         <div className="space-y-1">
           {/* 검색 힌트 */}
           <p className="text-sm text-slate-500 mb-4">
-            가나다순으로 정렬되어 있습니다. 환승역은 노선별 인원이 합산되어 표시됩니다.
+            환승역은 노선별로 분리되어 표시됩니다. 헤더를 클릭하여 정렬할 수 있습니다.
           </p>
           
           {/* 역 목록 테이블 */}
@@ -184,35 +234,39 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                   <th className="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400 w-10">#</th>
-                  <th className="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400">역명</th>
-                  <th className="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400">노선</th>
-                  <th className="text-right py-2 px-2 font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                    <span className="text-green-600 dark:text-green-400">평균 승차</span>
+                  <th 
+                    className="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors select-none"
+                    onClick={() => handleSort('name')}
+                  >
+                    역명{getSortIndicator('name')}
                   </th>
-                  <th className="text-right py-2 px-2 font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                    <span className="text-blue-600 dark:text-blue-400">평균 하차</span>
+                  <th className="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400">노선</th>
+                  <th 
+                    className="text-right py-2 px-2 font-medium cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors select-none whitespace-nowrap"
+                    onClick={() => handleSort('avgBoarding')}
+                  >
+                    <span className="text-green-600 dark:text-green-400">평균 승차{getSortIndicator('avgBoarding')}</span>
+                  </th>
+                  <th 
+                    className="text-right py-2 px-2 font-medium cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors select-none whitespace-nowrap"
+                    onClick={() => handleSort('avgAlighting')}
+                  >
+                    <span className="text-blue-600 dark:text-blue-400">평균 하차{getSortIndicator('avgAlighting')}</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {summary.stationList?.map((station, index) => (
+                {sortedStationList.map((station, index) => (
                   <tr 
-                    key={station.name}
+                    key={`${station.name}-${station.line}`}
                     className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   >
                     <td className="py-2 px-2 text-slate-400 text-xs">{index + 1}</td>
                     <td className="py-2 px-2 font-medium whitespace-nowrap">{station.name}</td>
                     <td className="py-2 px-2">
-                      <div className="flex flex-wrap gap-1">
-                        {station.lines.map((line) => (
-                          <span
-                            key={line}
-                            className={`${getLineColor(line)} text-xs px-1.5 py-0.5 rounded`}
-                          >
-                            {line}
-                          </span>
-                        ))}
-                      </div>
+                      <span className={`${getLineColor(station.line)} text-xs px-1.5 py-0.5 rounded`}>
+                        {station.line}
+                      </span>
                     </td>
                     <td className="py-2 px-2 text-right font-mono text-green-600 dark:text-green-400 whitespace-nowrap">
                       {station.avgBoarding?.toLocaleString() || '-'}명

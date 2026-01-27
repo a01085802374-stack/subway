@@ -15,7 +15,7 @@ interface SummaryData {
   weekdayCount: number;
   weekendHolidayCount: number;
   lineList?: string[];
-  stationList?: Array<{ name: string; lines: string[] }>;
+  stationList?: Array<{ name: string; line: string; avgBoarding?: number; avgAlighting?: number }>;
 }
 
 interface RankingData {
