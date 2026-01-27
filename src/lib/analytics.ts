@@ -4,6 +4,7 @@
  * 주요 기능:
  * 1. 평일/주말·공휴일 평균 계산
  * 2. TOP/BOTTOM 랭킹 산출
+ * 3. 동일 역명 합산 (여러 노선이 지나는 역은 합산하여 표시)
  */
 
 import {
@@ -95,7 +96,9 @@ export function analyzeData(data: SubwayUsageData[]): AnalysisResult {
   const weekendHolidayAvg: StationAverageData[] = [];
   const overallAvg: StationAverageData[] = [];
 
-  for (const station of aggregated.values()) {
+  const values = Array.from(aggregated.values());
+  
+  for (const station of values) {
     // 평일 평균
     if (station.weekday.count > 0) {
       weekdayAvg.push({
@@ -138,7 +141,21 @@ export function analyzeData(data: SubwayUsageData[]): AnalysisResult {
 }
 
 /**
+ * 역 그룹 데이터 타입 (동일 역명 합산용)
+ */
+interface StationGroup {
+  stationName: string;
+  lines: Array<{ lineName: string; boarding: number; alighting: number }>;
+  totalBoarding: number;
+  totalAlighting: number;
+}
+
+/**
  * 랭킹 데이터 생성
+ * - 동일 역명은 합산하여 하나로 표시
+ * - 승차 기준: 승차가 가장 많은 노선으로 표기
+ * - 하차 기준: 하차가 가장 많은 노선으로 표기
+ * 
  * @param analysisResult - 분석 결과
  * @param dayType - 날짜 유형 (평일/주말·공휴일/전체)
  * @param metricType - 지표 유형 (승차/하차)
@@ -167,16 +184,64 @@ export function getRanking(
       break;
   }
 
-  // 정렬 기준 선택
-  const getValue = (item: StationAverageData): number => {
-    return metricType === 'boarding' ? item.avgBoarding : item.avgAlighting;
-  };
+  // 역 이름 기준으로 그룹화하여 합산
+  const stationGroups = new Map<string, StationGroup>();
+
+  for (const item of sourceData) {
+    if (!stationGroups.has(item.stationName)) {
+      stationGroups.set(item.stationName, {
+        stationName: item.stationName,
+        lines: [],
+        totalBoarding: 0,
+        totalAlighting: 0,
+      });
+    }
+    
+    const group = stationGroups.get(item.stationName)!;
+    group.lines.push({
+      lineName: item.lineName,
+      boarding: item.avgBoarding,
+      alighting: item.avgAlighting,
+    });
+    group.totalBoarding += item.avgBoarding;
+    group.totalAlighting += item.avgAlighting;
+  }
+
+  // 합산된 데이터로 변환하고, 지표에 따라 대표 노선 선택
+  const mergedData: Array<{ stationName: string; lineName: string; count: number }> = [];
+  
+  const groupValues = Array.from(stationGroups.values());
+  
+  for (const group of groupValues) {
+    // 지표에 따라 가장 많은 노선 선택
+    let representativeLine: string;
+    
+    if (group.lines.length === 1) {
+      // 노선이 하나뿐이면 그 노선 사용
+      representativeLine = group.lines[0].lineName;
+    } else {
+      // 여러 노선이 있으면, 지표에 따라 가장 많은 노선 선택
+      if (metricType === 'boarding') {
+        representativeLine = group.lines.reduce((max, line) => 
+          line.boarding > max.boarding ? line : max
+        ).lineName;
+      } else {
+        representativeLine = group.lines.reduce((max, line) => 
+          line.alighting > max.alighting ? line : max
+        ).lineName;
+      }
+    }
+    
+    mergedData.push({
+      stationName: group.stationName,
+      lineName: representativeLine,
+      count: metricType === 'boarding' ? group.totalBoarding : group.totalAlighting,
+    });
+  }
 
   // 정렬 (TOP: 내림차순, BOTTOM: 오름차순)
-  const sorted = [...sourceData].sort((a, b) => {
-    const valueA = getValue(a);
-    const valueB = getValue(b);
-    return rankType === 'top' ? valueB - valueA : valueA - valueB;
+  const sorted = mergedData.sort((a, b) => {
+    return rankType === 'top' ? b.count - a.count : a.count - b.count;
   });
 
   // 상위/하위 N개 선택 및 랭킹 부여
@@ -184,7 +249,7 @@ export function getRanking(
     rank: index + 1,
     stationName: item.stationName,
     lineName: item.lineName,
-    count: getValue(item),
+    count: item.count,
   }));
 }
 
@@ -264,10 +329,11 @@ export function getDataSummary(data: SubwayUsageData[]): {
   weekdayCount: number;
   weekendHolidayCount: number;
 } {
-  const stations = new Set(data.map(d => `${d.stationName}|${d.lineName}`));
+  // 역 이름 기준 고유 역 수 (노선 무관하게 합산)
+  const stationNames = new Set(data.map(d => d.stationName));
   const lines = new Set(data.map(d => d.lineName));
   const dates = data.map(d => d.date).sort();
-  const uniqueDates = [...new Set(dates)];
+  const uniqueDates = Array.from(new Set(dates));
   
   let weekdayCount = 0;
   let weekendHolidayCount = 0;
@@ -282,7 +348,7 @@ export function getDataSummary(data: SubwayUsageData[]): {
 
   return {
     totalRecords: data.length,
-    uniqueStations: stations.size,
+    uniqueStations: stationNames.size,
     uniqueLines: lines.size,
     dateRange: {
       start: dates[0] || '',
