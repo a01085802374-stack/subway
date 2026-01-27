@@ -14,6 +14,9 @@ import { generateSampleData } from '@/lib/sampleData';
 import { analyzeData, getRanking, getRankingTitle } from '@/lib/analytics';
 import { DayType, MetricType, RankType, RankingResponse } from '@/lib/types';
 
+// 동적 라우트로 설정 (정적 생성 방지)
+export const dynamic = 'force-dynamic';
+
 // 데이터 캐싱 (서버 측에서 재생성 방지)
 let cachedData: ReturnType<typeof generateSampleData> | null = null;
 let cachedAnalysis: ReturnType<typeof analyzeData> | null = null;
@@ -30,7 +33,7 @@ function getAnalysis() {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     
     // 쿼리 파라미터 추출 및 검증
     const dayType = searchParams.get('dayType') as DayType | null;
