@@ -34,6 +34,15 @@ function getLineColor(lineName: string): string {
     '7호선': 'bg-[#6B8E23] text-white',
     '8호선': 'bg-pink-500 text-white',
     '9호선': 'bg-yellow-400 text-black',
+    '경의중앙선': 'bg-teal-500 text-white',
+    '수인분당선': 'bg-yellow-500 text-black',
+    '신분당선': 'bg-red-600 text-white',
+    '공항철도': 'bg-sky-600 text-white',
+    '경춘선': 'bg-cyan-600 text-white',
+    '경강선': 'bg-blue-500 text-white',
+    '김포골드라인': 'bg-amber-400 text-black',
+    '용인에버라인': 'bg-emerald-500 text-white',
+    '신림선': 'bg-indigo-500 text-white',
   };
   return colors[lineName] || 'bg-slate-500 text-white';
 }
