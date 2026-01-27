@@ -21,20 +21,20 @@ export default function CategorySelector({
 }: CategorySelectorProps) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 mb-6">
-      <h2 className="text-lg font-semibold mb-4">조회 조건 선택</h2>
+      <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">조회 조건 선택</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
         {/* 날짜 유형 */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             날짜 유형
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1 sm:gap-2">
             <button
               onClick={() => onDayTypeChange('weekday')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 dayType === 'weekday'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
@@ -42,19 +42,20 @@ export default function CategorySelector({
             </button>
             <button
               onClick={() => onDayTypeChange('weekend_holiday')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 dayType === 'weekend_holiday'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              주말·공휴일
+              <span className="hidden sm:inline">주말·공휴일</span>
+              <span className="sm:hidden">주말</span>
             </button>
             <button
               onClick={() => onDayTypeChange('overall')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 dayType === 'overall'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
@@ -63,62 +64,76 @@ export default function CategorySelector({
           </div>
         </div>
 
-        {/* 지표 유형 */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            지표 유형
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onMetricTypeChange('boarding')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                metricType === 'boarding'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              승차
-            </button>
-            <button
-              onClick={() => onMetricTypeChange('alighting')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                metricType === 'alighting'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              하차
-            </button>
+        {/* 지표 유형 + 랭킹 유형 (모바일에서는 한 줄에) */}
+        <div className="flex gap-4 sm:contents">
+          {/* 지표 유형 */}
+          <div className="flex-1">
+            <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              지표 유형
+            </label>
+            <div className="flex gap-1 sm:gap-2">
+              <button
+                onClick={() => onMetricTypeChange('boarding')}
+                className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                  metricType === 'boarding'
+                    ? 'bg-green-600 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                승차
+              </button>
+              <button
+                onClick={() => onMetricTypeChange('alighting')}
+                className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                  metricType === 'alighting'
+                    ? 'bg-green-600 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                하차
+              </button>
+            </div>
+          </div>
+
+          {/* 랭킹 유형 */}
+          <div className="flex-1">
+            <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              랭킹 유형
+            </label>
+            <div className="flex gap-1 sm:gap-2">
+              <button
+                onClick={() => onRankTypeChange('top')}
+                className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                  rankType === 'top'
+                    ? 'bg-orange-600 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                TOP
+              </button>
+              <button
+                onClick={() => onRankTypeChange('bottom')}
+                className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                  rankType === 'bottom'
+                    ? 'bg-orange-600 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                BOTTOM
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* 랭킹 유형 */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            랭킹 유형
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onRankTypeChange('top')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                rankType === 'top'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              TOP 30
-            </button>
-            <button
-              onClick={() => onRankTypeChange('bottom')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                rankType === 'bottom'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              BOTTOM 30
-            </button>
-          </div>
+      </div>
+      
+      {/* 현재 선택 표시 (모바일) */}
+      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 sm:hidden">
+        <div className="text-xs text-slate-500 text-center">
+          현재: <span className="font-medium text-slate-700 dark:text-slate-300">
+            {dayType === 'weekday' ? '평일' : dayType === 'weekend_holiday' ? '주말·공휴일' : '전체'} 
+            {' '}{metricType === 'boarding' ? '승차' : '하차'} 
+            {' '}{rankType === 'top' ? 'TOP' : 'BOTTOM'} 30
+          </span>
         </div>
       </div>
     </div>
