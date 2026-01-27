@@ -8,6 +8,7 @@ interface StationInfo {
   line: string;
   avgBoarding?: number;
   avgAlighting?: number;
+  dataCount?: number;  // 실제 데이터 일수
 }
 
 type SortField = 'name' | 'avgBoarding' | 'avgAlighting';
@@ -253,6 +254,9 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
                   >
                     <span className="text-blue-600 dark:text-blue-400">평균 하차{getSortIndicator('avgAlighting')}</span>
                   </th>
+                  <th className="text-center py-2 px-2 font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    데이터
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -274,6 +278,9 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
                     <td className="py-2 px-2 text-right font-mono text-blue-600 dark:text-blue-400 whitespace-nowrap">
                       {station.avgAlighting?.toLocaleString() || '-'}명
                     </td>
+                    <td className="py-2 px-2 text-center text-slate-500 text-xs whitespace-nowrap">
+                      {station.dataCount || '-'}일
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -283,7 +290,7 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
           {/* 범례 */}
           <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
             <p className="text-xs text-slate-500">
-              * 평균 승차/하차: 최근 30일 전체 기간 일평균 (평일+주말+공휴일)
+              * 평균 승차/하차: 실제 데이터가 있는 일수 기준 일평균 (데이터 없는 날짜 제외)
             </p>
           </div>
         </div>

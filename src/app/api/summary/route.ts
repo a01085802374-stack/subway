@@ -37,12 +37,14 @@ function getLineList(data: SubwayUsageData[]): string[] {
 /**
  * 역 목록 추출 (가나다순 정렬) - 노선별로 분리하여 평균 승/하차 인원 포함
  * 환승역은 노선별로 각각 별도의 행으로 표시
+ * 데이터가 없는 역/날짜는 제외하고 실제 데이터만으로 평균 계산
  */
 function getStationList(data: SubwayUsageData[]): Array<{ 
   name: string; 
   line: string;
   avgBoarding: number;
   avgAlighting: number;
+  dataCount: number;  // 실제 데이터 일수
 }> {
   // 역+노선 조합별 데이터 집계
   const stationLineMap = new Map<string, {
@@ -54,6 +56,11 @@ function getStationList(data: SubwayUsageData[]): Array<{
   }>();
   
   for (const record of data) {
+    // 유효한 데이터만 집계 (승차 또는 하차 인원이 있는 경우)
+    if (record.boardingCount <= 0 && record.alightingCount <= 0) {
+      continue;
+    }
+    
     const key = `${record.stationName}|${record.lineName}`;
     if (!stationLineMap.has(key)) {
       stationLineMap.set(key, {
@@ -70,13 +77,17 @@ function getStationList(data: SubwayUsageData[]): Array<{
     station.count += 1;
   }
   
-  const stations = Array.from(stationLineMap.values()).map((data) => ({
-    name: data.name,
-    line: data.line,
-    // 일평균 계산
-    avgBoarding: Math.round(data.totalBoarding / data.count),
-    avgAlighting: Math.round(data.totalAlighting / data.count),
-  }));
+  // 데이터가 있는 역만 결과에 포함
+  const stations = Array.from(stationLineMap.values())
+    .filter((data) => data.count > 0)  // 데이터가 없는 역 제외
+    .map((data) => ({
+      name: data.name,
+      line: data.line,
+      // 실제 데이터가 있는 일수로 일평균 계산
+      avgBoarding: Math.round(data.totalBoarding / data.count),
+      avgAlighting: Math.round(data.totalAlighting / data.count),
+      dataCount: data.count,
+    }));
   
   // 가나다순 정렬 (역명 기준, 같은 역은 노선번호순)
   return stations.sort((a, b) => {
