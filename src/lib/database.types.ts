@@ -27,6 +27,8 @@ export interface SubwayUsageRow {
   boarding_count: number;
   /** 하차고객수: 해당일 하차 고객수 */
   alighting_count: number;
+  /** 데이터 출처: sample, seoul_opendata, public_data 등 */
+  data_source: string;
   /** 데이터 INSERT 일시: 해당 행이 DB에 삽입된 시간 (ISO 8601 형식) */
   created_at: string;
   /** 데이터 최종 수정 일시: 해당 행이 마지막으로 수정된 시간 (ISO 8601 형식) */
@@ -41,6 +43,7 @@ export interface SubwayUsageInsert {
   station_name: string;
   boarding_count: number;
   alighting_count: number;
+  data_source?: string;  // 기본값: 'sample'
 }
 
 // subway_usage 테이블 Update 타입 (모든 필드 선택적)
@@ -51,6 +54,7 @@ export interface SubwayUsageUpdate {
   station_name?: string;
   boarding_count?: number;
   alighting_count?: number;
+  data_source?: string;
 }
 
 // Supabase Database 스키마 타입
@@ -90,6 +94,8 @@ export interface SubwayUsageRecord {
   boardingCount: number;
   /** 하차고객수 */
   alightingCount: number;
+  /** 데이터 출처 */
+  dataSource: string;
   /** 데이터 INSERT 일시: 해당 행이 DB에 삽입된 시간 */
   createdAt: string;
   /** 데이터 최종 수정 일시 */
@@ -106,6 +112,7 @@ export function toSubwayUsageRecord(row: SubwayUsageRow): SubwayUsageRecord {
     stationName: row.station_name,
     boardingCount: row.boarding_count,
     alightingCount: row.alighting_count,
+    dataSource: row.data_source,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -118,7 +125,8 @@ export function toSubwayUsageInsert(
   lineName: string,
   stationName: string,
   boardingCount: number,
-  alightingCount: number
+  alightingCount: number,
+  dataSource: string = 'sample'
 ): SubwayUsageInsert {
   return {
     usage_date: usageDate,
@@ -127,5 +135,6 @@ export function toSubwayUsageInsert(
     station_name: stationName,
     boarding_count: boardingCount,
     alighting_count: alightingCount,
+    data_source: dataSource,
   };
 }

@@ -191,10 +191,12 @@ export async function getExistingDataKeys(
  * - 조회 대상 기간에 속하는 날짜, 노선명, 역명에 해당하는 데이터가 있으면 스킵 (기존 데이터 사용)
  * 
  * @param records - 저장할 데이터 배열
+ * @param dataSource - 데이터 출처 (기본값: 'sample')
  * @returns 저장 결과 (신규 저장 건수, 스킵 건수)
  */
 export async function saveSubwayUsageData(
-  records: SubwayUsageData[]
+  records: SubwayUsageData[],
+  dataSource: string = 'sample'
 ): Promise<{ inserted: number; skipped: number; errors: string[] }> {
   const supabase = getSupabaseClient();
   
@@ -233,6 +235,7 @@ export async function saveSubwayUsageData(
         station_name: record.stationName,
         boarding_count: record.boardingCount,
         alighting_count: record.alightingCount,
+        data_source: dataSource,
       });
     }
   }
@@ -267,9 +270,12 @@ export async function saveSubwayUsageData(
 
 /**
  * 지하철 이용 데이터 단건 저장 (중복 시 스킵)
+ * @param record - 저장할 데이터
+ * @param dataSource - 데이터 출처 (기본값: 'sample')
  */
 export async function saveSubwayUsageSingle(
-  record: SubwayUsageData
+  record: SubwayUsageData,
+  dataSource: string = 'sample'
 ): Promise<{ success: boolean; isNew: boolean; error?: string }> {
   const supabase = getSupabaseClient();
   
@@ -292,6 +298,7 @@ export async function saveSubwayUsageSingle(
     station_name: record.stationName,
     boarding_count: record.boardingCount,
     alighting_count: record.alightingCount,
+    data_source: dataSource,
   };
   
   const { error } = await supabase
