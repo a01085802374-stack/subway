@@ -182,10 +182,8 @@ export async function GET(request: NextRequest) {
     const data = await getData(year, month);
     const summary = getDataSummary(data);
     
-    // 데이터 소스 정보 추가
-    const dataSource = isSupabaseConfigured() && !(await shouldUseSampleData(year, month))
-      ? 'database'
-      : 'sample';
+    // 데이터 소스 정보: 데이터가 있고 Supabase가 설정되어 있으면 'database'
+    const dataSource = isSupabaseConfigured() && data.length > 0 ? 'database' : 'sample';
     const lineList = getLineList(data);
     const stationList = getStationList(data);
     

@@ -27,7 +27,6 @@ export const dynamic = 'force-dynamic';
 
 // 샘플 데이터 캐싱 (서버 측에서 재생성 방지) - 년월별 캐싱
 const sampleDataCache = new Map<string, SubwayUsageData[]>();
-const analysisCache = new Map<string, ReturnType<typeof analyzeData>>();
 
 /**
  * 데이터 가져오기 (조회 전용 - INSERT 작업 없음)
@@ -75,27 +74,16 @@ async function getData(year?: number, month?: number): Promise<SubwayUsageData[]
 }
 
 /**
- * 분석 결과 가져오기 (캐싱 적용)
+ * 분석 결과 가져오기
+ * - DB 데이터는 매번 새로 조회 (데이터 변경 가능성)
+ * - 샘플 데이터는 캐시 사용
  */
 async function getAnalysis(year?: number, month?: number) {
-  const cacheKey = year && month ? `${year}-${month}` : 'default';
+  // 데이터 조회
+  const data = await getData(year, month);
   
-  // DB 데이터 사용 시 캐시를 사용하지 않음 (데이터 변경 가능성)
-  if (isSupabaseConfigured()) {
-    const useSample = await shouldUseSampleData(year, month);
-    if (!useSample) {
-      const data = await getData(year, month);
-      return analyzeData(data);
-    }
-  }
-  
-  // 샘플 데이터의 경우 캐시 사용
-  if (!analysisCache.has(cacheKey)) {
-    const data = await getData(year, month);
-    analysisCache.set(cacheKey, analyzeData(data));
-  }
-  
-  return analysisCache.get(cacheKey)!;
+  // 분석 수행
+  return analyzeData(data);
 }
 
 export async function GET(request: NextRequest) {
