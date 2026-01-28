@@ -19,7 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateSampleData, generateMonthlyData } from '@/lib/sampleData';
 import { analyzeData, getRanking, getRankingTitle } from '@/lib/analytics';
 import { DayType, MetricType, RankType, RankingResponse, SubwayUsageData } from '@/lib/types';
-import { getSubwayUsageByMonth, getSubwayUsageByPeriod, shouldUseSampleData } from '@/lib/subwayUsageService';
+import { getSubwayUsageByMonth, getSubwayUsageByPeriod, shouldUseSampleData, saveSubwayUsageData } from '@/lib/subwayUsageService';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 // 동적 라우트로 설정 (정적 생성 방지)
@@ -30,21 +30,20 @@ const sampleDataCache = new Map<string, SubwayUsageData[]>();
 const analysisCache = new Map<string, ReturnType<typeof analyzeData>>();
 
 /**
- * 데이터 가져오기 (DB 우선, 없으면 샘플 데이터)
+ * 데이터 가져오기 (DB 우선, 없으면 자동으로 DB에 저장 후 반환)
  */
 async function getData(year?: number, month?: number): Promise<SubwayUsageData[]> {
   const cacheKey = year && month ? `${year}-${month}` : 'default';
   
-  // Supabase가 설정되어 있고 DB에 데이터가 있으면 DB 데이터 사용
+  // Supabase가 설정되어 있는 경우
   if (isSupabaseConfigured()) {
     const useSample = await shouldUseSampleData(year, month);
     
     if (!useSample) {
-      // DB에서 데이터 조회
+      // DB에 데이터가 있으면 DB에서 조회
       if (year && month) {
         return await getSubwayUsageByMonth(year, month);
       } else {
-        // 최근 30일 데이터 조회
         const today = new Date();
         const thirtyDaysAgo = new Date(today);
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -54,10 +53,25 @@ async function getData(year?: number, month?: number): Promise<SubwayUsageData[]
         
         return await getSubwayUsageByPeriod(startDate, endDate);
       }
+    } else {
+      // DB에 데이터가 없으면 샘플 데이터를 생성하여 DB에 저장
+      console.log(`[Auto-Sync] DB에 데이터 없음. 자동 저장 시작: ${year || 'recent'}-${month || '30days'}`);
+      
+      const sampleData = year && month ? generateMonthlyData(year, month) : generateSampleData();
+      
+      // DB에 저장 (백그라운드로 실행, 에러 무시)
+      saveSubwayUsageData(sampleData, 'sample').then(result => {
+        console.log(`[Auto-Sync] 저장 완료: inserted=${result.inserted}, skipped=${result.skipped}`);
+      }).catch(err => {
+        console.error('[Auto-Sync] 저장 실패:', err);
+      });
+      
+      // 저장 완료를 기다리지 않고 샘플 데이터 바로 반환
+      return sampleData;
     }
   }
   
-  // 샘플 데이터 사용 (캐시 활용)
+  // Supabase 미설정 시 샘플 데이터 사용 (캐시 활용)
   if (!sampleDataCache.has(cacheKey)) {
     const data = year && month ? generateMonthlyData(year, month) : generateSampleData();
     sampleDataCache.set(cacheKey, data);
