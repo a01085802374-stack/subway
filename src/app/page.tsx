@@ -62,7 +62,9 @@ export default function Home() {
   const [ranking, setRanking] = useState<RankingData | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [rankingLoading, setRankingLoading] = useState(true);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // 요약 데이터 조회
   const fetchSummary = useCallback(async () => {
@@ -125,6 +127,40 @@ export default function Home() {
     setAppliedMonth(selectedMonth);
   };
 
+  // 데이터 가져오기 버튼 클릭 핸들러 (DB에 INSERT)
+  const handleSync = async () => {
+    try {
+      setSyncLoading(true);
+      setSyncMessage(null);
+      setError(null);
+      
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          year: selectedYear, 
+          month: selectedMonth 
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSyncMessage(`${selectedYear}년 ${selectedMonth}월 데이터 저장 완료! (저장: ${data.stats?.inserted || 0}건, 스킵: ${data.stats?.skipped || 0}건)`);
+        // 저장 후 자동으로 조회
+        setAppliedYear(selectedYear);
+        setAppliedMonth(selectedMonth);
+      } else {
+        setError(`데이터 저장 실패: ${data.error || '알 수 없는 오류'}`);
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+      setError('데이터 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   // 지표 라벨
   const getMetricLabel = () => {
     return metricType === 'boarding' ? '평균 승차 인원' : '평균 하차 인원';
@@ -175,7 +211,7 @@ export default function Home() {
           {/* 조회 버튼 */}
           <button
             onClick={handleSearch}
-            disabled={summaryLoading || rankingLoading}
+            disabled={summaryLoading || rankingLoading || syncLoading}
             className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {summaryLoading || rankingLoading ? (
@@ -191,8 +227,27 @@ export default function Home() {
             )}
           </button>
           
+          {/* 데이터 가져오기 버튼 */}
+          <button
+            onClick={handleSync}
+            disabled={summaryLoading || rankingLoading || syncLoading}
+            className="px-6 py-2 rounded-lg bg-green-600 text-white font-medium text-sm hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {syncLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                저장 중...
+              </span>
+            ) : (
+              '데이터 가져오기'
+            )}
+          </button>
+          
           {/* 현재 조회 중인 기간 표시 */}
-          {(appliedYear !== selectedYear || appliedMonth !== selectedMonth) && (
+          {(appliedYear !== selectedYear || appliedMonth !== selectedMonth) && !syncLoading && (
             <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -215,6 +270,24 @@ export default function Home() {
         onMetricTypeChange={setMetricType}
         onRankTypeChange={setRankType}
       />
+      
+      {/* 성공 메시지 */}
+      {syncMessage && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-green-600 dark:text-green-400 flex items-center gap-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          {syncMessage}
+          <button 
+            onClick={() => setSyncMessage(null)}
+            className="ml-auto text-green-800 dark:text-green-300 hover:text-green-600"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       
       {/* 에러 메시지 */}
       {error && (
