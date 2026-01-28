@@ -175,8 +175,10 @@ export async function getExistingDataKeys(
   
   // 키 생성: "날짜|노선|역"
   const keys = new Set<string>();
-  for (const row of data || []) {
-    keys.add(`${row.usage_date}|${row.line_name}|${row.station_name}`);
+  if (data) {
+    for (const row of data as { usage_date: string; line_name: string; station_name: string }[]) {
+      keys.add(`${row.usage_date}|${row.line_name}|${row.station_name}`);
+    }
   }
   
   return keys;
@@ -398,21 +400,23 @@ export async function getStationAverages(
     lineName: string;
   }>();
   
-  for (const row of data || []) {
-    const key = `${row.line_name}|${row.station_name}`;
-    const existing = stationMap.get(key);
-    
-    if (existing) {
-      existing.totalBoarding += row.boarding_count;
-      existing.totalAlighting += row.alighting_count;
-      existing.count += 1;
-    } else {
-      stationMap.set(key, {
-        totalBoarding: row.boarding_count,
-        totalAlighting: row.alighting_count,
-        count: 1,
-        lineName: row.line_name,
-      });
+  if (data) {
+    for (const row of data as { station_name: string; line_name: string; boarding_count: number; alighting_count: number }[]) {
+      const key = `${row.line_name}|${row.station_name}`;
+      const existing = stationMap.get(key);
+      
+      if (existing) {
+        existing.totalBoarding += row.boarding_count;
+        existing.totalAlighting += row.alighting_count;
+        existing.count += 1;
+      } else {
+        stationMap.set(key, {
+          totalBoarding: row.boarding_count,
+          totalAlighting: row.alighting_count,
+          count: 1,
+          lineName: row.line_name,
+        });
+      }
     }
   }
   
