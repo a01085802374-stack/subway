@@ -53,14 +53,18 @@ async function getData(year?: number, month?: number): Promise<SubwayUsageData[]
       
       const sampleData = year && month ? generateMonthlyData(year, month) : generateSampleData();
       
-      // DB에 저장 (백그라운드로 실행, 에러 무시)
-      saveSubwayUsageData(sampleData, 'sample').then(result => {
-        console.log(`[Auto-Sync] 저장 완료: inserted=${result.inserted}, skipped=${result.skipped}`);
-      }).catch(err => {
+      // DB에 저장 (완료될 때까지 대기)
+      try {
+        const result = await saveSubwayUsageData(sampleData, 'sample');
+        console.log(`[Auto-Sync] 저장 완료: inserted=${result.inserted}, skipped=${result.skipped}, errors=${result.errors.length}`);
+        if (result.errors.length > 0) {
+          console.error('[Auto-Sync] 저장 오류:', result.errors);
+        }
+      } catch (err) {
         console.error('[Auto-Sync] 저장 실패:', err);
-      });
+      }
       
-      // 저장 완료를 기다리지 않고 샘플 데이터 바로 반환
+      // 저장 완료 후 샘플 데이터 반환
       return sampleData;
     }
   }
