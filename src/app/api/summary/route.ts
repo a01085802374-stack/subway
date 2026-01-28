@@ -17,30 +17,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateSampleData, generateMonthlyData } from '@/lib/sampleData';
 import { getDataSummary } from '@/lib/analytics';
 import { SubwayUsageData } from '@/lib/types';
-import { getSubwayUsageByMonth, getSubwayUsageByPeriod, saveSubwayUsageData } from '@/lib/subwayUsageService';
+import { getSubwayUsageByMonth, getSubwayUsageByPeriod } from '@/lib/subwayUsageService';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 // 샘플 데이터 캐싱 - 년월별 캐싱
 const sampleDataCache = new Map<string, SubwayUsageData[]>();
 
 /**
- * 데이터 가져오기 (DB 우선, 누락된 데이터는 백그라운드에서 추가)
- * - DB에 데이터가 있으면 반환
- * - 누락된 레코드는 백그라운드에서 INSERT (응답을 블로킹하지 않음)
- * - 타임아웃: 30초
+ * 데이터 가져오기 (조회 전용 - INSERT 작업 없음)
+ * - DB에 데이터가 있으면 DB 데이터 반환
+ * - DB에 데이터가 없으면 샘플 데이터 반환
+ * - 데이터 저장은 /api/sync 를 통해 별도로 수행
  */
 async function getData(year?: number, month?: number): Promise<SubwayUsageData[]> {
   const cacheKey = year && month ? `${year}-${month}` : 'default';
   
-  // Supabase가 설정되어 있는 경우
+  // Supabase가 설정되어 있는 경우 DB 조회
   if (isSupabaseConfigured()) {
-    // 샘플 데이터 먼저 생성 (빠름)
-    const sampleData = year && month ? generateMonthlyData(year, month) : generateSampleData();
-    
-    // DB에서 기존 데이터 조회 시도
-    let dbData: SubwayUsageData[] = [];
-    
     try {
+      let dbData: SubwayUsageData[] = [];
+      
       if (year && month) {
         dbData = await getSubwayUsageByMonth(year, month);
       } else {
@@ -53,33 +49,17 @@ async function getData(year?: number, month?: number): Promise<SubwayUsageData[]
         
         dbData = await getSubwayUsageByPeriod(startDate, endDate);
       }
+      
+      // DB에 데이터가 있으면 반환
+      if (dbData.length > 0) {
+        return dbData;
+      }
     } catch (err) {
-      console.error('[getData] DB 조회 실패, 샘플 데이터 사용:', err);
-      // DB 조회 실패 시 샘플 데이터 반환
-      return sampleData;
+      console.error('[getData] DB 조회 실패:', err);
     }
-    
-    // 백그라운드에서 누락 데이터 저장 (절대 await 하지 않음)
-    // Edge Runtime에서는 응답 후에도 백그라운드 작업이 일정 시간 실행됨
-    Promise.resolve().then(() => {
-      saveSubwayUsageData(sampleData, 'sample').then(result => {
-        if (result.inserted > 0) {
-          console.log(`[Background-Sync] inserted=${result.inserted}, skipped=${result.skipped}`);
-        }
-      }).catch(err => {
-        console.error('[Background-Sync] 저장 실패:', err);
-      });
-    });
-    
-    // DB 데이터가 있으면 DB 데이터 반환, 없으면 샘플 데이터 반환
-    if (dbData.length > 0) {
-      return dbData;
-    }
-    
-    return sampleData;
   }
   
-  // Supabase 미설정 시 샘플 데이터 사용 (캐시 활용)
+  // DB에 데이터가 없거나 Supabase 미설정 시 샘플 데이터 사용
   if (!sampleDataCache.has(cacheKey)) {
     const data = year && month ? generateMonthlyData(year, month) : generateSampleData();
     sampleDataCache.set(cacheKey, data);
