@@ -7,25 +7,57 @@
  *   - month: number (월 1-12, 선택)
  * 데이터 범위, 역 수, 노선 수 등 요약 정보를 반환
  * 노선 목록과 역 목록도 함께 반환
+ * 
+ * 데이터 소스:
+ *   - Supabase DB에 데이터가 있으면 DB 데이터 사용
+ *   - DB에 데이터가 없거나 Supabase 미설정 시 샘플 데이터 사용
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSampleData, generateMonthlyData } from '@/lib/sampleData';
 import { getDataSummary } from '@/lib/analytics';
 import { SubwayUsageData } from '@/lib/types';
+import { getSubwayUsageByMonth, getSubwayUsageByPeriod, shouldUseSampleData } from '@/lib/subwayUsageService';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
-// 데이터 캐싱 - 년월별 캐싱
-const dataCache = new Map<string, ReturnType<typeof generateSampleData>>();
+// 샘플 데이터 캐싱 - 년월별 캐싱
+const sampleDataCache = new Map<string, SubwayUsageData[]>();
 
-function getData(year?: number, month?: number) {
+/**
+ * 데이터 가져오기 (DB 우선, 없으면 샘플 데이터)
+ */
+async function getData(year?: number, month?: number): Promise<SubwayUsageData[]> {
   const cacheKey = year && month ? `${year}-${month}` : 'default';
   
-  if (!dataCache.has(cacheKey)) {
-    const data = year && month ? generateMonthlyData(year, month) : generateSampleData();
-    dataCache.set(cacheKey, data);
+  // Supabase가 설정되어 있고 DB에 데이터가 있으면 DB 데이터 사용
+  if (isSupabaseConfigured()) {
+    const useSample = await shouldUseSampleData(year, month);
+    
+    if (!useSample) {
+      // DB에서 데이터 조회
+      if (year && month) {
+        return await getSubwayUsageByMonth(year, month);
+      } else {
+        // 최근 30일 데이터 조회
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const endDate = today.toISOString().split('T')[0];
+        
+        return await getSubwayUsageByPeriod(startDate, endDate);
+      }
+    }
   }
   
-  return dataCache.get(cacheKey)!;
+  // 샘플 데이터 사용 (캐시 활용)
+  if (!sampleDataCache.has(cacheKey)) {
+    const data = year && month ? generateMonthlyData(year, month) : generateSampleData();
+    sampleDataCache.set(cacheKey, data);
+  }
+  
+  return sampleDataCache.get(cacheKey)!;
 }
 
 /**
@@ -139,8 +171,13 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    const data = getData(year, month);
+    const data = await getData(year, month);
     const summary = getDataSummary(data);
+    
+    // 데이터 소스 정보 추가
+    const dataSource = isSupabaseConfigured() && !(await shouldUseSampleData(year, month))
+      ? 'database'
+      : 'sample';
     const lineList = getLineList(data);
     const stationList = getStationList(data);
     
@@ -150,6 +187,7 @@ export async function GET(request: NextRequest) {
       stationList,
       year,
       month,
+      dataSource,  // 'database' 또는 'sample'
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

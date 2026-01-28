@@ -9,30 +9,81 @@
  *   - limit: number (기본값: 30)
  *   - year: number (년도, 선택)
  *   - month: number (월 1-12, 선택)
+ * 
+ * 데이터 소스:
+ *   - Supabase DB에 데이터가 있으면 DB 데이터 사용
+ *   - DB에 데이터가 없거나 Supabase 미설정 시 샘플 데이터 사용
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSampleData, generateMonthlyData } from '@/lib/sampleData';
 import { analyzeData, getRanking, getRankingTitle } from '@/lib/analytics';
-import { DayType, MetricType, RankType, RankingResponse } from '@/lib/types';
+import { DayType, MetricType, RankType, RankingResponse, SubwayUsageData } from '@/lib/types';
+import { getSubwayUsageByMonth, getSubwayUsageByPeriod, shouldUseSampleData } from '@/lib/subwayUsageService';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 // 동적 라우트로 설정 (정적 생성 방지)
 export const dynamic = 'force-dynamic';
 
-// 데이터 캐싱 (서버 측에서 재생성 방지) - 년월별 캐싱
-const dataCache = new Map<string, ReturnType<typeof generateSampleData>>();
+// 샘플 데이터 캐싱 (서버 측에서 재생성 방지) - 년월별 캐싱
+const sampleDataCache = new Map<string, SubwayUsageData[]>();
 const analysisCache = new Map<string, ReturnType<typeof analyzeData>>();
 
-function getAnalysis(year?: number, month?: number) {
+/**
+ * 데이터 가져오기 (DB 우선, 없으면 샘플 데이터)
+ */
+async function getData(year?: number, month?: number): Promise<SubwayUsageData[]> {
   const cacheKey = year && month ? `${year}-${month}` : 'default';
   
-  if (!dataCache.has(cacheKey)) {
-    const data = year && month ? generateMonthlyData(year, month) : generateSampleData();
-    dataCache.set(cacheKey, data);
+  // Supabase가 설정되어 있고 DB에 데이터가 있으면 DB 데이터 사용
+  if (isSupabaseConfigured()) {
+    const useSample = await shouldUseSampleData(year, month);
+    
+    if (!useSample) {
+      // DB에서 데이터 조회
+      if (year && month) {
+        return await getSubwayUsageByMonth(year, month);
+      } else {
+        // 최근 30일 데이터 조회
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const endDate = today.toISOString().split('T')[0];
+        
+        return await getSubwayUsageByPeriod(startDate, endDate);
+      }
+    }
   }
   
+  // 샘플 데이터 사용 (캐시 활용)
+  if (!sampleDataCache.has(cacheKey)) {
+    const data = year && month ? generateMonthlyData(year, month) : generateSampleData();
+    sampleDataCache.set(cacheKey, data);
+  }
+  
+  return sampleDataCache.get(cacheKey)!;
+}
+
+/**
+ * 분석 결과 가져오기 (캐싱 적용)
+ */
+async function getAnalysis(year?: number, month?: number) {
+  const cacheKey = year && month ? `${year}-${month}` : 'default';
+  
+  // DB 데이터 사용 시 캐시를 사용하지 않음 (데이터 변경 가능성)
+  if (isSupabaseConfigured()) {
+    const useSample = await shouldUseSampleData(year, month);
+    if (!useSample) {
+      const data = await getData(year, month);
+      return analyzeData(data);
+    }
+  }
+  
+  // 샘플 데이터의 경우 캐시 사용
   if (!analysisCache.has(cacheKey)) {
-    const data = dataCache.get(cacheKey)!;
+    const data = await getData(year, month);
     analysisCache.set(cacheKey, analyzeData(data));
   }
   
@@ -108,7 +159,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 분석 데이터 조회
-    const analysis = getAnalysis(year, month);
+    const analysis = await getAnalysis(year, month);
     
     // 랭킹 생성
     const rankingData = getRanking(analysis, dayType, metricType, rankType, limit);
