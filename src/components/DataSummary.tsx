@@ -24,6 +24,8 @@ interface DataSummaryProps {
     weekendHolidayCount: number;
     lineList?: string[];
     stationList?: StationInfo[];  // 노선별로 분리된 역 목록
+    year?: number;
+    month?: number;
   } | null;
   loading: boolean;
 }
@@ -137,7 +139,13 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
           {/* 분석 기간 */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
             <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400">분석 기간</div>
-            <div className="text-lg sm:text-xl font-bold mt-1">30일</div>
+            <div className="text-lg sm:text-xl font-bold mt-1">
+              {summary.year && summary.month ? (
+                <>{summary.year}년 {summary.month}월</>
+              ) : (
+                '최근 30일'
+              )}
+            </div>
             <div className="text-xs text-slate-500 mt-1 truncate" title={formatDate(summary.dateRange.start)}>
               {formatDate(summary.dateRange.start)}
             </div>

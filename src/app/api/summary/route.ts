@@ -2,23 +2,30 @@
  * 데이터 요약 정보 조회 API
  * 
  * GET /api/summary
+ * Query Parameters:
+ *   - year: number (년도, 선택)
+ *   - month: number (월 1-12, 선택)
  * 데이터 범위, 역 수, 노선 수 등 요약 정보를 반환
  * 노선 목록과 역 목록도 함께 반환
  */
 
-import { NextResponse } from 'next/server';
-import { generateSampleData } from '@/lib/sampleData';
+import { NextRequest, NextResponse } from 'next/server';
+import { generateSampleData, generateMonthlyData } from '@/lib/sampleData';
 import { getDataSummary } from '@/lib/analytics';
 import { SubwayUsageData } from '@/lib/types';
 
-// 데이터 캐싱
-let cachedData: ReturnType<typeof generateSampleData> | null = null;
+// 데이터 캐싱 - 년월별 캐싱
+const dataCache = new Map<string, ReturnType<typeof generateSampleData>>();
 
-function getData() {
-  if (!cachedData) {
-    cachedData = generateSampleData();
+function getData(year?: number, month?: number) {
+  const cacheKey = year && month ? `${year}-${month}` : 'default';
+  
+  if (!dataCache.has(cacheKey)) {
+    const data = year && month ? generateMonthlyData(year, month) : generateSampleData();
+    dataCache.set(cacheKey, data);
   }
-  return cachedData;
+  
+  return dataCache.get(cacheKey)!;
 }
 
 /**
@@ -100,9 +107,39 @@ function getStationList(data: SubwayUsageData[]): Array<{
   });
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const data = getData();
+    const searchParams = request.nextUrl.searchParams;
+    
+    // 년월 파라미터 추출
+    const yearStr = searchParams.get('year');
+    const monthStr = searchParams.get('month');
+    const year = yearStr ? parseInt(yearStr, 10) : undefined;
+    const month = monthStr ? parseInt(monthStr, 10) : undefined;
+    
+    // 년월 파라미터 검증
+    if ((year && !month) || (!year && month)) {
+      return NextResponse.json(
+        { error: 'Both year and month parameters are required when filtering by date' },
+        { status: 400 }
+      );
+    }
+    
+    if (year && (year < 2025 || year > 2026)) {
+      return NextResponse.json(
+        { error: 'Invalid year parameter. Valid values: 2025, 2026' },
+        { status: 400 }
+      );
+    }
+    
+    if (month && (month < 1 || month > 12)) {
+      return NextResponse.json(
+        { error: 'Invalid month parameter. Valid values: 1-12' },
+        { status: 400 }
+      );
+    }
+    
+    const data = getData(year, month);
     const summary = getDataSummary(data);
     const lineList = getLineList(data);
     const stationList = getStationList(data);
@@ -111,6 +148,8 @@ export async function GET() {
       ...summary,
       lineList,
       stationList,
+      year,
+      month,
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

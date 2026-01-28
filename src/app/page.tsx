@@ -16,6 +16,8 @@ interface SummaryData {
   weekendHolidayCount: number;
   lineList?: string[];
   stationList?: Array<{ name: string; line: string; avgBoarding?: number; avgAlighting?: number; dataCount?: number }>;
+  year?: number;
+  month?: number;
 }
 
 interface RankingData {
@@ -26,7 +28,30 @@ interface RankingData {
   rankType: RankType;
 }
 
+// 사용 가능한 년도/월 옵션
+const AVAILABLE_YEARS = [2025, 2026];
+const AVAILABLE_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+// 현재 년월 기본값 (2026년 1월로 설정 - 오늘 날짜 기준)
+const getDefaultYearMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  // 2025-2026 범위 내인지 확인
+  if (year >= 2025 && year <= 2026) {
+    return { year, month };
+  }
+  return { year: 2026, month: 1 };
+};
+
 export default function Home() {
+  // 년월 선택 상태
+  const defaultYearMonth = getDefaultYearMonth();
+  const [selectedYear, setSelectedYear] = useState<number>(defaultYearMonth.year);
+  const [selectedMonth, setSelectedMonth] = useState<number>(defaultYearMonth.month);
+  const [appliedYear, setAppliedYear] = useState<number>(defaultYearMonth.year);
+  const [appliedMonth, setAppliedMonth] = useState<number>(defaultYearMonth.month);
+  
   // 조회 조건 상태
   const [dayType, setDayType] = useState<DayType>('weekday');
   const [metricType, setMetricType] = useState<MetricType>('boarding');
@@ -40,23 +65,28 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   // 요약 데이터 조회
-  useEffect(() => {
-    async function fetchSummary() {
-      try {
-        setSummaryLoading(true);
-        const response = await fetch('/api/summary');
-        if (!response.ok) throw new Error('요약 데이터 조회 실패');
-        const data = await response.json();
-        setSummary(data);
-      } catch (err) {
-        console.error('Summary fetch error:', err);
-        setError('요약 데이터를 불러오는 데 실패했습니다.');
-      } finally {
-        setSummaryLoading(false);
-      }
+  const fetchSummary = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      const params = new URLSearchParams({
+        year: appliedYear.toString(),
+        month: appliedMonth.toString(),
+      });
+      const response = await fetch(`/api/summary?${params}`);
+      if (!response.ok) throw new Error('요약 데이터 조회 실패');
+      const data = await response.json();
+      setSummary(data);
+    } catch (err) {
+      console.error('Summary fetch error:', err);
+      setError('요약 데이터를 불러오는 데 실패했습니다.');
+    } finally {
+      setSummaryLoading(false);
     }
+  }, [appliedYear, appliedMonth]);
+
+  useEffect(() => {
     fetchSummary();
-  }, []);
+  }, [fetchSummary]);
 
   // 랭킹 데이터 조회
   const fetchRanking = useCallback(async () => {
@@ -69,6 +99,8 @@ export default function Home() {
         metricType,
         rankType,
         limit: '30',
+        year: appliedYear.toString(),
+        month: appliedMonth.toString(),
       });
       
       const response = await fetch(`/api/rankings?${params}`);
@@ -81,11 +113,17 @@ export default function Home() {
     } finally {
       setRankingLoading(false);
     }
-  }, [dayType, metricType, rankType]);
+  }, [dayType, metricType, rankType, appliedYear, appliedMonth]);
 
   useEffect(() => {
     fetchRanking();
   }, [fetchRanking]);
+  
+  // 조회 버튼 클릭 핸들러
+  const handleSearch = () => {
+    setAppliedYear(selectedYear);
+    setAppliedMonth(selectedMonth);
+  };
 
   // 지표 라벨
   const getMetricLabel = () => {
@@ -94,6 +132,77 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
+      {/* 년월 선택 */}
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4">
+        <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">분석 기간 선택</h2>
+        <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+          {/* 년도 선택 */}
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              년도
+            </label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[100px]"
+            >
+              {AVAILABLE_YEARS.map((year) => (
+                <option key={year} value={year}>
+                  {year}년
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* 월 선택 */}
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              월
+            </label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px]"
+            >
+              {AVAILABLE_MONTHS.map((month) => (
+                <option key={month} value={month}>
+                  {month}월
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* 조회 버튼 */}
+          <button
+            onClick={handleSearch}
+            disabled={summaryLoading || rankingLoading}
+            className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {summaryLoading || rankingLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                조회 중...
+              </span>
+            ) : (
+              '조회'
+            )}
+          </button>
+          
+          {/* 현재 조회 중인 기간 표시 */}
+          {(appliedYear !== selectedYear || appliedMonth !== selectedMonth) && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              조회 버튼을 눌러 데이터를 갱신하세요
+            </div>
+          )}
+        </div>
+      </div>
+      
       {/* 데이터 요약 */}
       <DataSummary summary={summary} loading={summaryLoading} />
       

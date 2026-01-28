@@ -126,6 +126,40 @@ export function getRecentDates(days: number = 30, endDate: Date = new Date()): s
 }
 
 /**
+ * 특정 년월의 모든 날짜 배열 생성
+ * @param year - 년도
+ * @param month - 월 (1-12)
+ * @returns 날짜 문자열 배열 (YYYY-MM-DD)
+ */
+export function getMonthDates(year: number, month: number): string[] {
+  const dates: string[] = [];
+  // 해당 월의 마지막 날 계산
+  const lastDay = new Date(year, month, 0).getDate();
+  
+  for (let day = 1; day <= lastDay; day++) {
+    const date = new Date(year, month - 1, day);
+    dates.push(formatDate(date));
+  }
+  return dates;
+}
+
+/**
+ * 사용 가능한 년도 목록 반환 (2025-2026년)
+ * @returns 년도 배열
+ */
+export function getAvailableYears(): number[] {
+  return [2025, 2026];
+}
+
+/**
+ * 사용 가능한 월 목록 반환 (1-12월)
+ * @returns 월 배열
+ */
+export function getAvailableMonths(): number[] {
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+}
+
+/**
  * 날짜 배열을 평일/주말·공휴일로 분류
  * @param dates - 날짜 배열
  * @returns 분류된 날짜 객체

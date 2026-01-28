@@ -6,7 +6,7 @@
  */
 
 import { SubwayUsageData } from './types';
-import { getRecentDates, isWeekday } from './holidays';
+import { getRecentDates, getMonthDates, isWeekday } from './holidays';
 
 // 서울 지하철 주요역 정보 (실제 역 기준)
 const SEOUL_METRO_STATIONS = [
@@ -560,6 +560,93 @@ export function generateSampleData(): SubwayUsageData[] {
   }
 
   return data;
+}
+
+/**
+ * 특정 년월의 샘플 데이터 생성
+ * @param year - 년도
+ * @param month - 월 (1-12)
+ * @returns 지하철 이용객 데이터 배열
+ */
+export function generateMonthlyData(year: number, month: number): SubwayUsageData[] {
+  const dates = getMonthDates(year, month);
+  const data: SubwayUsageData[] = [];
+
+  // 년월에 따른 시드 값으로 일관된 데이터 생성
+  const seed = year * 100 + month;
+  const seededRandom = createSeededRandom(seed);
+
+  for (const station of SEOUL_METRO_STATIONS) {
+    for (const date of dates) {
+      const weekday = isWeekday(date);
+      const multiplier = weekday ? 1 : getWeekendMultiplierSeeded(station.name, seededRandom);
+      
+      const boarding = applyVarianceSeeded(Math.round(station.baseBoarding * multiplier), 0.15, seededRandom);
+      const alighting = applyVarianceSeeded(Math.round(station.baseAlighting * multiplier), 0.15, seededRandom);
+
+      data.push({
+        stationName: station.name,
+        lineName: station.line,
+        date: date,
+        boardingCount: boarding,
+        alightingCount: alighting,
+      });
+    }
+  }
+
+  return data;
+}
+
+/**
+ * 시드 기반 랜덤 함수 생성 (일관된 데이터 생성용)
+ */
+function createSeededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+}
+
+/**
+ * 시드 기반 랜덤 변동폭 적용
+ */
+function applyVarianceSeeded(base: number, variance: number = 0.15, random: () => number): number {
+  const factor = 1 + (random() - 0.5) * 2 * variance;
+  return Math.round(base * factor);
+}
+
+/**
+ * 시드 기반 주말 감소율 적용
+ */
+function getWeekendMultiplierSeeded(stationName: string, random: () => number): number {
+  // 관광/쇼핑 지역은 주말에 오히려 증가
+  const touristStations = [
+    '홍대입구', '명동', '이태원', '잠실', '건대입구', '강남', '압구정', '신사', '경복궁', '안국', '종로3가', '동대문', '고속터미널',
+    '인천공항1터미널', '인천공항2터미널', '김포공항',
+    '가평', '강촌', '춘천', '남춘천', '청평',
+    '전대·에버랜드',
+    '서울숲', '압구정로데오',
+    '여주', '세종대왕릉',
+  ];
+  if (touristStations.includes(stationName)) {
+    return 0.9 + random() * 0.3;
+  }
+  
+  // 업무 지역은 주말에 크게 감소
+  const businessStations = [
+    '여의도', '광화문', '을지로입구', '선릉', '역삼', '삼성', '구로디지털단지', '가산디지털단지', '판교',
+    '정자', '미금', '서현', '야탑',
+    '디지털미디어시티',
+    '양재', '양재시민의숲', '강남구청',
+    '남동인더스파크',
+    '수원시청', '송도',
+  ];
+  if (businessStations.includes(stationName)) {
+    return 0.3 + random() * 0.2;
+  }
+  
+  return 0.6 + random() * 0.2;
 }
 
 /**
