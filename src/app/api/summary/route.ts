@@ -25,15 +25,19 @@ const sampleDataCache = new Map<string, SubwayUsageData[]>();
 
 /**
  * 데이터 가져오기 (DB 우선, 누락된 데이터는 백그라운드에서 추가)
- * - DB에 데이터가 있으면 즉시 반환 (빠른 응답)
- * - 누락된 레코드는 백그라운드에서 INSERT (다음 조회 시 반영)
+ * - DB에 데이터가 있으면 반환
+ * - 누락된 레코드는 백그라운드에서 INSERT (응답을 블로킹하지 않음)
+ * - 타임아웃: 30초
  */
 async function getData(year?: number, month?: number): Promise<SubwayUsageData[]> {
   const cacheKey = year && month ? `${year}-${month}` : 'default';
   
   // Supabase가 설정되어 있는 경우
   if (isSupabaseConfigured()) {
-    // 먼저 DB에서 기존 데이터 조회
+    // 샘플 데이터 먼저 생성 (빠름)
+    const sampleData = year && month ? generateMonthlyData(year, month) : generateSampleData();
+    
+    // DB에서 기존 데이터 조회 시도
     let dbData: SubwayUsageData[] = [];
     
     try {
@@ -50,36 +54,28 @@ async function getData(year?: number, month?: number): Promise<SubwayUsageData[]
         dbData = await getSubwayUsageByPeriod(startDate, endDate);
       }
     } catch (err) {
-      console.error('[getData] DB 조회 실패:', err);
+      console.error('[getData] DB 조회 실패, 샘플 데이터 사용:', err);
+      // DB 조회 실패 시 샘플 데이터 반환
+      return sampleData;
     }
     
-    // 샘플 데이터 생성
-    const sampleData = year && month ? generateMonthlyData(year, month) : generateSampleData();
-    
-    // DB에 데이터가 있으면 즉시 반환하고, 누락 데이터는 백그라운드에서 저장
-    if (dbData.length > 0) {
-      // 백그라운드에서 누락 데이터 저장 (응답을 기다리지 않음)
+    // 백그라운드에서 누락 데이터 저장 (절대 await 하지 않음)
+    // Edge Runtime에서는 응답 후에도 백그라운드 작업이 일정 시간 실행됨
+    Promise.resolve().then(() => {
       saveSubwayUsageData(sampleData, 'sample').then(result => {
         if (result.inserted > 0) {
-          console.log(`[Background-Sync] 누락 데이터 추가: inserted=${result.inserted}, skipped=${result.skipped}`);
+          console.log(`[Background-Sync] inserted=${result.inserted}, skipped=${result.skipped}`);
         }
       }).catch(err => {
         console.error('[Background-Sync] 저장 실패:', err);
       });
-      
-      // DB 데이터 즉시 반환
+    });
+    
+    // DB 데이터가 있으면 DB 데이터 반환, 없으면 샘플 데이터 반환
+    if (dbData.length > 0) {
       return dbData;
     }
     
-    // DB에 데이터가 전혀 없으면 저장 완료 후 샘플 데이터 반환
-    try {
-      const result = await saveSubwayUsageData(sampleData, 'sample');
-      console.log(`[Auto-Sync] 초기 데이터 저장: inserted=${result.inserted}, errors=${result.errors.length}`);
-    } catch (err) {
-      console.error('[Auto-Sync] 저장 실패:', err);
-    }
-    
-    // 샘플 데이터 반환 (저장된 것과 동일)
     return sampleData;
   }
   
