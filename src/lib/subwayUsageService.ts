@@ -251,7 +251,7 @@ export async function saveSubwayUsageData(
     
     const { data, error } = await supabase
       .from('subway_usage')
-      .insert(batch)
+      .insert(batch as unknown as Record<string, unknown>[])
       .select('id');
     
     if (error) {
@@ -285,16 +285,18 @@ export async function saveSubwayUsageSingle(
   }
   
   // 신규 데이터 Insert
+  const insertData = {
+    usage_date: record.date,
+    holiday_type: getHolidayType(record.date),
+    line_name: record.lineName,
+    station_name: record.stationName,
+    boarding_count: record.boardingCount,
+    alighting_count: record.alightingCount,
+  };
+  
   const { error } = await supabase
     .from('subway_usage')
-    .insert({
-      usage_date: record.date,
-      holiday_type: getHolidayType(record.date),
-      line_name: record.lineName,
-      station_name: record.stationName,
-      boarding_count: record.boardingCount,
-      alighting_count: record.alightingCount,
-    });
+    .insert(insertData as unknown as Record<string, unknown>);
   
   if (error) {
     return { success: false, isNew: false, error: error.message };
