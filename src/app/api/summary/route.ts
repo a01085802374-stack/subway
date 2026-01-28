@@ -24,44 +24,63 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 const sampleDataCache = new Map<string, SubwayUsageData[]>();
 
 /**
- * 데이터 가져오기 (DB 우선, 누락된 데이터는 자동으로 추가)
- * - DB에 일부 데이터만 있어도 누락된 레코드를 자동으로 INSERT
- * - 기존 데이터(날짜+노선+역명 일치)는 그대로 유지
+ * 데이터 가져오기 (DB 우선, 누락된 데이터는 백그라운드에서 추가)
+ * - DB에 데이터가 있으면 즉시 반환 (빠른 응답)
+ * - 누락된 레코드는 백그라운드에서 INSERT (다음 조회 시 반영)
  */
 async function getData(year?: number, month?: number): Promise<SubwayUsageData[]> {
   const cacheKey = year && month ? `${year}-${month}` : 'default';
   
   // Supabase가 설정되어 있는 경우
   if (isSupabaseConfigured()) {
-    // 항상 샘플 데이터를 생성하여 누락된 레코드 체크
+    // 먼저 DB에서 기존 데이터 조회
+    let dbData: SubwayUsageData[] = [];
+    
+    try {
+      if (year && month) {
+        dbData = await getSubwayUsageByMonth(year, month);
+      } else {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const endDate = today.toISOString().split('T')[0];
+        
+        dbData = await getSubwayUsageByPeriod(startDate, endDate);
+      }
+    } catch (err) {
+      console.error('[getData] DB 조회 실패:', err);
+    }
+    
+    // 샘플 데이터 생성
     const sampleData = year && month ? generateMonthlyData(year, month) : generateSampleData();
     
-    // DB에 저장 (이미 존재하는 데이터는 자동으로 스킵됨)
+    // DB에 데이터가 있으면 즉시 반환하고, 누락 데이터는 백그라운드에서 저장
+    if (dbData.length > 0) {
+      // 백그라운드에서 누락 데이터 저장 (응답을 기다리지 않음)
+      saveSubwayUsageData(sampleData, 'sample').then(result => {
+        if (result.inserted > 0) {
+          console.log(`[Background-Sync] 누락 데이터 추가: inserted=${result.inserted}, skipped=${result.skipped}`);
+        }
+      }).catch(err => {
+        console.error('[Background-Sync] 저장 실패:', err);
+      });
+      
+      // DB 데이터 즉시 반환
+      return dbData;
+    }
+    
+    // DB에 데이터가 전혀 없으면 저장 완료 후 샘플 데이터 반환
     try {
       const result = await saveSubwayUsageData(sampleData, 'sample');
-      if (result.inserted > 0) {
-        console.log(`[Auto-Sync] 누락 데이터 추가: inserted=${result.inserted}, skipped=${result.skipped}`);
-      }
-      if (result.errors.length > 0) {
-        console.error('[Auto-Sync] 저장 오류:', result.errors);
-      }
+      console.log(`[Auto-Sync] 초기 데이터 저장: inserted=${result.inserted}, errors=${result.errors.length}`);
     } catch (err) {
       console.error('[Auto-Sync] 저장 실패:', err);
     }
     
-    // DB에서 최신 데이터 조회하여 반환
-    if (year && month) {
-      return await getSubwayUsageByMonth(year, month);
-    } else {
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-      const endDate = today.toISOString().split('T')[0];
-      
-      return await getSubwayUsageByPeriod(startDate, endDate);
-    }
+    // 샘플 데이터 반환 (저장된 것과 동일)
+    return sampleData;
   }
   
   // Supabase 미설정 시 샘플 데이터 사용 (캐시 활용)
