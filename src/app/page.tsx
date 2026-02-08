@@ -168,19 +168,22 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-      {/* 년월 선택 */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4">
-        <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">분석 기간 선택</h2>
+      {/* 년월 선택 - 지브리 스타일 */}
+      <div className="ghibli-card p-5">
+        <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-ghibli-charcoal flex items-center gap-2">
+          <span className="text-xl">📅</span>
+          분석 기간 선택
+        </h2>
         <div className="flex flex-wrap items-end gap-3 sm:gap-4">
           {/* 년도 선택 */}
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-ghibli-earth mb-2">
               년도
             </label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[100px]"
+              className="ghibli-select min-w-[100px]"
             >
               {AVAILABLE_YEARS.map((year) => (
                 <option key={year} value={year}>
@@ -192,13 +195,13 @@ export default function Home() {
           
           {/* 월 선택 */}
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-ghibli-earth mb-2">
               월
             </label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[80px]"
+              className="ghibli-select min-w-[80px]"
             >
               {AVAILABLE_MONTHS.map((month) => (
                 <option key={month} value={month}>
@@ -208,11 +211,11 @@ export default function Home() {
             </select>
           </div>
           
-          {/* 조회 버튼 */}
+          {/* 조회 버튼 - 지브리 스타일 */}
           <button
             onClick={handleSearch}
             disabled={summaryLoading || rankingLoading || syncLoading}
-            className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="ghibli-btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {summaryLoading || rankingLoading ? (
               <span className="flex items-center gap-2">
@@ -223,15 +226,15 @@ export default function Home() {
                 조회 중...
               </span>
             ) : (
-              '조회'
+              <span className="flex items-center gap-1">🔍 조회</span>
             )}
           </button>
           
-          {/* 데이터 가져오기 버튼 */}
+          {/* 데이터 가져오기 버튼 - 지브리 스타일 */}
           <button
             onClick={handleSync}
             disabled={summaryLoading || rankingLoading || syncLoading}
-            className="px-6 py-2 rounded-lg bg-green-600 text-white font-medium text-sm hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="ghibli-btn-secondary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {syncLoading ? (
               <span className="flex items-center gap-2">
@@ -242,16 +245,14 @@ export default function Home() {
                 저장 중...
               </span>
             ) : (
-              '데이터 가져오기'
+              <span className="flex items-center gap-1">📥 데이터 가져오기</span>
             )}
           </button>
           
           {/* 현재 조회 중인 기간 표시 */}
           {(appliedYear !== selectedYear || appliedMonth !== selectedMonth) && !syncLoading && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="text-xs text-ghibli-terracotta flex items-center gap-1">
+              <span>🍃</span>
               조회 버튼을 눌러 데이터를 갱신하세요
             </div>
           )}
@@ -271,16 +272,14 @@ export default function Home() {
         onRankTypeChange={setRankType}
       />
       
-      {/* 성공 메시지 */}
+      {/* 성공 메시지 - 지브리 스타일 */}
       {syncMessage && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-green-600 dark:text-green-400 flex items-center gap-2">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+        <div className="bg-ghibli-mint/30 border-2 border-ghibli-leaf rounded-2xl p-4 text-ghibli-forest flex items-center gap-2 shadow-ghibli">
+          <span className="text-xl">🌸</span>
           {syncMessage}
           <button 
             onClick={() => setSyncMessage(null)}
-            className="ml-auto text-green-800 dark:text-green-300 hover:text-green-600"
+            className="ml-auto text-ghibli-forest hover:text-ghibli-leaf transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -289,13 +288,14 @@ export default function Home() {
         </div>
       )}
       
-      {/* 에러 메시지 */}
+      {/* 에러 메시지 - 지브리 스타일 */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-600 dark:text-red-400">
+        <div className="bg-ghibli-coral/20 border-2 border-ghibli-terracotta rounded-2xl p-4 text-ghibli-terracotta shadow-ghibli">
+          <span className="mr-2">🍂</span>
           {error}
           <button 
             onClick={fetchRanking}
-            className="ml-4 underline hover:no-underline"
+            className="ml-4 underline hover:no-underline text-ghibli-bark"
           >
             다시 시도
           </button>
@@ -313,9 +313,12 @@ export default function Home() {
         />
       ) : null}
       
-      {/* 퀵 네비게이션 */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4">
-        <h2 className="text-lg font-semibold mb-4">빠른 조회</h2>
+      {/* 퀵 네비게이션 - 지브리 스타일 */}
+      <div className="ghibli-card p-5">
+        <h2 className="text-lg font-semibold mb-4 text-ghibli-charcoal flex items-center gap-2">
+          <span className="text-xl">⚡</span>
+          빠른 조회
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {getQuickLinks().map((link, index) => (
             <button
@@ -326,10 +329,10 @@ export default function Home() {
                 setRankType(link.rankType);
               }}
               className={`
-                px-3 py-2 rounded-lg text-sm text-left transition-colors
+                px-3 py-2 rounded-xl text-sm text-left transition-all duration-200
                 ${dayType === link.dayType && metricType === link.metricType && rankType === link.rankType
-                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium'
-                  : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  ? 'bg-ghibli-leaf/30 text-ghibli-forest font-medium border-2 border-ghibli-leaf shadow-md'
+                  : 'bg-ghibli-beige/50 hover:bg-ghibli-moss/20 text-ghibli-brown border-2 border-transparent hover:border-ghibli-sand'
                 }
               `}
             >
@@ -339,24 +342,51 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 설명 섹션 */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4">
-        <h2 className="text-lg font-semibold mb-4">분석 기준 안내</h2>
-        <div className="grid md:grid-cols-2 gap-4 text-sm text-slate-600 dark:text-slate-400">
-          <div>
-            <h3 className="font-medium text-slate-800 dark:text-slate-200 mb-2">날짜 분류</h3>
-            <ul className="list-disc list-inside space-y-1">
-              <li><strong>평일:</strong> 월요일 ~ 금요일 (공휴일 제외)</li>
-              <li><strong>주말·공휴일:</strong> 토요일, 일요일 및 법정 공휴일</li>
-              <li><strong>전체:</strong> 평일 + 주말·공휴일 통합</li>
+      {/* 설명 섹션 - 지브리 스타일 */}
+      <div className="ghibli-card p-5">
+        <h2 className="text-lg font-semibold mb-4 text-ghibli-charcoal flex items-center gap-2">
+          <span className="text-xl">📖</span>
+          분석 기준 안내
+        </h2>
+        <div className="grid md:grid-cols-2 gap-6 text-sm text-ghibli-brown">
+          <div className="bg-ghibli-sky/10 rounded-xl p-4 border border-ghibli-cloud">
+            <h3 className="font-medium text-ghibli-charcoal mb-3 flex items-center gap-2">
+              <span>🗓️</span>
+              날짜 분류
+            </h3>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-ghibli-forest">🌿</span>
+                <span><strong className="text-ghibli-charcoal">평일:</strong> 월요일 ~ 금요일 (공휴일 제외)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ghibli-terracotta">🌅</span>
+                <span><strong className="text-ghibli-charcoal">주말·공휴일:</strong> 토요일, 일요일 및 법정 공휴일</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ghibli-water">🌊</span>
+                <span><strong className="text-ghibli-charcoal">전체:</strong> 평일 + 주말·공휴일 통합</span>
+              </li>
             </ul>
           </div>
-          <div>
-            <h3 className="font-medium text-slate-800 dark:text-slate-200 mb-2">지표 설명</h3>
-            <ul className="list-disc list-inside space-y-1">
-              <li><strong>승차:</strong> 해당 역에서 지하철에 탑승한 인원</li>
-              <li><strong>하차:</strong> 해당 역에서 지하철에서 내린 인원</li>
-              <li>모든 수치는 일평균 기준</li>
+          <div className="bg-ghibli-sunset/10 rounded-xl p-4 border border-ghibli-coral/30">
+            <h3 className="font-medium text-ghibli-charcoal mb-3 flex items-center gap-2">
+              <span>📊</span>
+              지표 설명
+            </h3>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-ghibli-forest">🚶</span>
+                <span><strong className="text-ghibli-charcoal">승차:</strong> 해당 역에서 지하철에 탑승한 인원</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ghibli-terracotta">🚶‍♂️</span>
+                <span><strong className="text-ghibli-charcoal">하차:</strong> 해당 역에서 지하철에서 내린 인원</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ghibli-earth">📈</span>
+                <span>모든 수치는 <strong className="text-ghibli-charcoal">일평균</strong> 기준</span>
+              </li>
             </ul>
           </div>
         </div>

@@ -2,44 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 지브리 스타일 색상 변수 */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #FDF8F0;
+  --foreground: #4A4035;
+  --ghibli-cream: #FDF8F0;
+  --ghibli-beige: #F5ECD7;
+  --ghibli-forest: #5B8C5A;
+  --ghibli-leaf: #7BA876;
+  --ghibli-sky: #87CEEB;
+  --ghibli-terracotta: #E07A5F;
+  --ghibli-earth: #8B7355;
 }
 
+/* 다크 모드에서도 따뜻한 톤 유지 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
+    --background: #3D3629;
+    --foreground: #F5ECD7;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Pretendard', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* 테이블 스타일 */
+/* 지브리 스타일 배경 패턴 */
+.ghibli-pattern {
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(123, 168, 118, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(135, 206, 235, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(224, 122, 95, 0.05) 0%, transparent 40%);
+}
+
+/* 구름 같은 부드러운 카드 */
+.ghibli-card {
+  @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-ghibli border border-ghibli-sand/50;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ghibli-card:hover {
+  @apply shadow-ghibli-lg;
+  transform: translateY(-2px);
+}
+
+/* 테이블 스타일 - 지브리 버전 */
 .data-table {
   @apply w-full border-collapse;
 }
 
 .data-table th {
-  @apply bg-slate-100 dark:bg-slate-800 px-4 py-3 text-left font-semibold text-sm border-b-2 border-slate-200 dark:border-slate-700;
+  @apply bg-ghibli-beige/70 px-4 py-3 text-left font-semibold text-sm border-b-2 border-ghibli-sand text-ghibli-charcoal;
 }
 
 .data-table td {
-  @apply px-4 py-3 border-b border-slate-100 dark:border-slate-800;
+  @apply px-4 py-3 border-b border-ghibli-sand/50 text-ghibli-brown;
 }
 
 .data-table tbody tr:hover {
-  @apply bg-slate-50 dark:bg-slate-800/50;
+  @apply bg-ghibli-mint/20;
 }
 
 /* 정렬 가능한 헤더 */
 .sortable {
-  @apply cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors;
+  @apply cursor-pointer select-none transition-colors;
+}
+
+.sortable:hover {
+  @apply bg-ghibli-moss/30;
 }
 
 .sortable::after {
@@ -49,10 +81,51 @@ body {
 
 .sortable.asc::after {
   content: ' ↑';
-  @apply opacity-100;
+  @apply opacity-100 text-ghibli-forest;
 }
 
 .sortable.desc::after {
   content: ' ↓';
-  @apply opacity-100;
+  @apply opacity-100 text-ghibli-forest;
+}
+
+/* 버튼 스타일 */
+.ghibli-btn-primary {
+  @apply px-6 py-2 rounded-xl font-medium text-sm transition-all duration-300;
+  @apply bg-ghibli-forest text-white hover:bg-ghibli-leaf;
+  @apply shadow-md hover:shadow-lg hover:-translate-y-0.5;
+}
+
+.ghibli-btn-secondary {
+  @apply px-6 py-2 rounded-xl font-medium text-sm transition-all duration-300;
+  @apply bg-ghibli-terracotta text-white hover:bg-ghibli-coral;
+  @apply shadow-md hover:shadow-lg hover:-translate-y-0.5;
+}
+
+/* 입력 필드 스타일 */
+.ghibli-select {
+  @apply px-3 py-2 rounded-xl border-2 border-ghibli-sand bg-white/80;
+  @apply text-ghibli-charcoal text-sm;
+  @apply focus:ring-2 focus:ring-ghibli-leaf focus:border-ghibli-forest;
+  @apply transition-all duration-200;
+}
+
+/* 스크롤바 스타일 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ghibli-beige);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ghibli-earth);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ghibli-forest);
 }

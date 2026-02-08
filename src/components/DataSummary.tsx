@@ -108,11 +108,11 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 mb-6 animate-pulse">
-        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/4 mb-4"></div>
+      <div className="ghibli-card p-5 mb-6 animate-pulse">
+        <div className="h-4 bg-ghibli-sand rounded w-1/4 mb-4"></div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-20 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+            <div key={i} className="h-20 bg-ghibli-beige rounded-xl"></div>
           ))}
         </div>
       </div>
@@ -132,24 +132,29 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
 
   return (
     <>
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 mb-6">
-        <h2 className="text-lg font-semibold mb-4">데이터 요약</h2>
+      <div className="ghibli-card p-5 mb-6">
+        <h2 className="text-lg font-semibold mb-4 text-ghibli-charcoal flex items-center gap-2">
+          <span className="text-xl">📊</span>
+          데이터 요약
+        </h2>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* 분석 기간 */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-            <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400">분석 기간</div>
-            <div className="text-lg sm:text-xl font-bold mt-1">
+          <div className="bg-ghibli-sky/20 rounded-xl p-3 border border-ghibli-cloud">
+            <div className="text-xs sm:text-sm text-ghibli-water flex items-center gap-1">
+              <span>📅</span> 분석 기간
+            </div>
+            <div className="text-lg sm:text-xl font-bold mt-1 text-ghibli-charcoal">
               {summary.year && summary.month ? (
                 <>{summary.year}년 {summary.month}월</>
               ) : (
                 '최근 30일'
               )}
             </div>
-            <div className="text-xs text-slate-500 mt-1 truncate" title={formatDate(summary.dateRange.start)}>
+            <div className="text-xs text-ghibli-earth mt-1 truncate" title={formatDate(summary.dateRange.start)}>
               {formatDate(summary.dateRange.start)}
             </div>
-            <div className="text-xs text-slate-500 truncate" title={formatDate(summary.dateRange.end)}>
+            <div className="text-xs text-ghibli-earth truncate" title={formatDate(summary.dateRange.end)}>
               ~ {formatDate(summary.dateRange.end)}
             </div>
           </div>
@@ -157,52 +162,58 @@ export default function DataSummary({ summary, loading }: DataSummaryProps) {
           {/* 총 역 수 - 클릭 가능 */}
           <button
             onClick={() => setShowStationModal(true)}
-            className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-left hover:ring-2 hover:ring-green-400 transition-all cursor-pointer group"
+            className="bg-ghibli-mint/30 rounded-xl p-3 text-left hover:ring-2 hover:ring-ghibli-leaf transition-all cursor-pointer group border border-ghibli-moss/30"
           >
-            <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-              총 역 수
+            <div className="text-xs sm:text-sm text-ghibli-forest flex items-center gap-1">
+              <span>🚉</span> 총 역 수
               <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </div>
-            <div className="text-xl sm:text-2xl font-bold mt-1">{summary.uniqueStations}</div>
-            <div className="text-xs text-slate-500">개 역 (클릭)</div>
+            <div className="text-xl sm:text-2xl font-bold mt-1 text-ghibli-charcoal">{summary.uniqueStations}</div>
+            <div className="text-xs text-ghibli-earth">개 역 (클릭)</div>
           </button>
           
           {/* 노선 수 - 클릭 가능 */}
           <button
             onClick={() => setShowLineModal(true)}
-            className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-left hover:ring-2 hover:ring-purple-400 transition-all cursor-pointer group"
+            className="bg-ghibli-sunset/20 rounded-xl p-3 text-left hover:ring-2 hover:ring-ghibli-terracotta transition-all cursor-pointer group border border-ghibli-coral/30"
           >
-            <div className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 flex items-center gap-1">
-              노선 수
+            <div className="text-xs sm:text-sm text-ghibli-terracotta flex items-center gap-1">
+              <span>🚇</span> 노선 수
               <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </div>
-            <div className="text-xl sm:text-2xl font-bold mt-1">{summary.uniqueLines}</div>
-            <div className="text-xs text-slate-500">개 노선 (클릭)</div>
+            <div className="text-xl sm:text-2xl font-bold mt-1 text-ghibli-charcoal">{summary.uniqueLines}</div>
+            <div className="text-xs text-ghibli-earth">개 노선 (클릭)</div>
           </button>
           
           {/* 평일 */}
-          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
-            <div className="text-xs sm:text-sm text-orange-600 dark:text-orange-400">평일</div>
-            <div className="text-xl sm:text-2xl font-bold mt-1">{summary.weekdayCount}</div>
-            <div className="text-xs text-slate-500">일</div>
+          <div className="bg-ghibli-leaf/20 rounded-xl p-3 border border-ghibli-moss/30">
+            <div className="text-xs sm:text-sm text-ghibli-forest flex items-center gap-1">
+              <span>🌿</span> 평일
+            </div>
+            <div className="text-xl sm:text-2xl font-bold mt-1 text-ghibli-charcoal">{summary.weekdayCount}</div>
+            <div className="text-xs text-ghibli-earth">일</div>
           </div>
           
           {/* 주말·공휴일 */}
-          <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-3">
-            <div className="text-xs sm:text-sm text-pink-600 dark:text-pink-400">주말·공휴일</div>
-            <div className="text-xl sm:text-2xl font-bold mt-1">{summary.weekendHolidayCount}</div>
-            <div className="text-xs text-slate-500">일</div>
+          <div className="bg-ghibli-coral/20 rounded-xl p-3 border border-ghibli-terracotta/30">
+            <div className="text-xs sm:text-sm text-ghibli-terracotta flex items-center gap-1">
+              <span>🌅</span> 주말·공휴일
+            </div>
+            <div className="text-xl sm:text-2xl font-bold mt-1 text-ghibli-charcoal">{summary.weekendHolidayCount}</div>
+            <div className="text-xs text-ghibli-earth">일</div>
           </div>
           
           {/* 총 레코드 */}
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
-            <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">총 레코드</div>
-            <div className="text-xl sm:text-2xl font-bold mt-1">{summary.totalRecords.toLocaleString()}</div>
-            <div className="text-xs text-slate-500">건</div>
+          <div className="bg-ghibli-beige rounded-xl p-3 border border-ghibli-sand">
+            <div className="text-xs sm:text-sm text-ghibli-earth flex items-center gap-1">
+              <span>📋</span> 총 레코드
+            </div>
+            <div className="text-xl sm:text-2xl font-bold mt-1 text-ghibli-charcoal">{summary.totalRecords.toLocaleString()}</div>
+            <div className="text-xs text-ghibli-earth">건</div>
           </div>
         </div>
       </div>

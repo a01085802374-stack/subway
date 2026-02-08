@@ -1,11 +1,18 @@
 export default function LoadingSpinner() {
   return (
-    <div className="flex items-center justify-center p-8">
+    <div className="ghibli-card p-8 flex flex-col items-center justify-center gap-4">
       <div className="relative">
-        <div className="w-12 h-12 rounded-full border-4 border-slate-200 dark:border-slate-700"></div>
-        <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin absolute top-0 left-0"></div>
+        {/* 구름 배경 */}
+        <div className="w-16 h-16 rounded-full bg-ghibli-beige border-4 border-ghibli-sand flex items-center justify-center">
+          <span className="text-2xl animate-bounce">🚃</span>
+        </div>
+        {/* 회전 링 */}
+        <div className="w-16 h-16 rounded-full border-4 border-ghibli-leaf border-t-transparent animate-spin absolute top-0 left-0"></div>
       </div>
-      <span className="ml-4 text-slate-600 dark:text-slate-400">데이터를 불러오는 중...</span>
+      <div className="text-center">
+        <p className="text-ghibli-earth font-medium">데이터를 불러오는 중...</p>
+        <p className="text-xs text-ghibli-brown mt-1">🌿 잠시만 기다려 주세요 🌿</p>
+      </div>
     </div>
   );
 }
